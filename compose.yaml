@@ -1,0 +1,123 @@
+name: drama-workbench
+
+services:
+  workbench:
+    image: ${DRAMA_IMAGE:-dsh-drama-workbench:local}
+    pull_policy: never
+    build:
+      context: .
+      args:
+        DSH_BUILD_IMAGE: ${DSH_BUILD_IMAGE:-dsh-build:local}
+    depends_on:
+      model-source:
+        condition: service_healthy
+    command: ["--drama", "--container-listener", "--port", "4318", "--data-dir", "/data", "--dsh-home", "/model-source"]
+    user: "${DRAMA_UID:-1000}:${DRAMA_GID:-1000}"
+    environment:
+      HOME: /tmp
+      STUDIO_RUNTIME_LOCK_DIR: /run/drama-lock
+      DRAMA_BUNDLED_SEARCH: "1"
+      STUDIO_DSH_HOME: /model-source
+      STUDIO_MODEL_PROBE_TIMEOUT_MS: "${STUDIO_MODEL_PROBE_TIMEOUT_MS:-180000}"
+      STUDIO_DEMO: "${DRAMA_DEMO:-0}"
+      STUDIO_MODEL_SOURCE_SOCKET: /run/drama-models/reader.sock
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 45s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=128m,mode=1777
+    ports:
+      - "127.0.0.1:${DRAMA_PORT:-4318}:4318"
+    volumes:
+      - runtime-lock:/run/drama-lock
+      - type: bind
+        source: ${DRAMA_DATA_DIR:-./.drama}
+        target: /data
+        bind:
+          create_host_path: false
+      - model-socket:/run/drama-models:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4318/api/health').then(async r => { if (!r.ok || !(await r.json()).ok) process.exit(1) }).catch(() => process.exit(1))"]
+      start_period: 15s
+      interval: 15s
+      timeout: 5s
+      retries: 4
+
+  public-search:
+    image: ${DRAMA_SEARCH_IMAGE:-searxng/searxng:latest}
+    pull_policy: missing
+    user: "977:977"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    environment:
+      GRANIAN_HOST: 0.0.0.0
+      GRANIAN_PORT: 8080
+      GRANIAN_WORKERS: 1
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=32m
+      - /etc/searxng:rw,nosuid,nodev,noexec,uid=977,gid=977,size=1m
+      - /var/cache/searxng:rw,nosuid,nodev,noexec,uid=977,gid=977,size=16m
+    volumes:
+      - ./deploy/public-search.yml:/opt/drama-search.yml:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        umask 077
+        secret=$$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9')
+        sed "s/__GENERATE_AT_START__/$$secret/" /opt/drama-search.yml > /etc/searxng/settings.yml
+        exec /usr/local/searxng/entrypoint.sh
+    healthcheck:
+      test: ["CMD", "/usr/local/searxng/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).read()"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+
+  model-source:
+    image: ${DRAMA_IMAGE:-dsh-drama-workbench:local}
+    pull_policy: never
+    user: "${DRAMA_UID:-1000}:${DRAMA_GID:-1000}"
+    restart: unless-stopped
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 32
+    entrypoint:
+      - node
+      - --permission
+      - --allow-fs-read=/app/scripts/model-source-reader.mjs
+      - --allow-fs-read=/source/profiles/web/cordis.patch.yml
+      - --allow-fs-read=/source/cordis.patch.yml
+      - --allow-fs-read=/source/settings.yaml
+      - --allow-fs-read=/source/.credentials.yaml
+      - --allow-fs-read=/source/.env
+      - --allow-fs-read=/run/drama-models
+      - --allow-fs-write=/run/drama-models
+      - /app/scripts/model-source-reader.mjs
+    volumes:
+      - type: bind
+        source: ${DRAMA_DSH_HOME:-./.dsh-home}
+        target: /source
+        read_only: true
+        bind:
+          create_host_path: false
+      - model-socket:/run/drama-models
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:http').get({socketPath:'/run/drama-models/reader.sock',path:'/health'},r=>{r.resume();process.exitCode=r.statusCode===204?0:1}).on('error',()=>process.exit(1))"]
+      interval: 10s
+      start_period: 5s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  runtime-lock:
+  model-socket:

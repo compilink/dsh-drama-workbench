@@ -1,0 +1,6 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>视频任务与审片 · Agent Studio</title><link rel="stylesheet" href="/styles.css"></head><body class="video-review-page">
+<main><h1>视频任务与审片</h1><p><a href="/">返回 Agent Studio</a> · 本机离线试点，不接社媒，不自动发布。</p>
+<p>真实生成仍由创作人员/Agent 完成。Demo 的任务完成不代表已生成素材。只从专用输入目录导入，勿填写凭据或私人文件。</p>
+<form id="create"><label>已有协作 <select id="run" required></select></label><label>任务说明 <input id="brief" required maxlength="4000"></label><label>已有成片绝对路径（留空则创建阶段任务）<input id="source"></label><button>创建任务 / 导入审片</button></form>
+<details><summary>编剧与编辑审片标准</summary><ul><li>按制作说明核对脚本、画面与字幕。</li><li>完整试听旁白、背景声及画音同步。</li><li>核对素材授权，记录需要返工的时间点。</li></ul></details>
+<p id="notice" role="status"></p><button id="refresh">刷新状态</button><section id="jobs"></section></main><script src="/video.js"></script></body></html>

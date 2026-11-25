@@ -1,0 +1,13 @@
+*
+!Dockerfile
+!package.json
+!compatibility.json
+!tsconfig.json
+!public/
+!src/
+!scripts/
+scripts/*
+!scripts/dependencies.mjs
+!scripts/docker-runtime.mjs
+!scripts/docker-entrypoint.sh
+!scripts/model-source-reader.mjs

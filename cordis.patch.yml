@@ -1,0 +1,8 @@
+# This bundle owns an independent DSH runtime and loopback Web server.
+# Agent configuration is selected in Studio; host profile Agent state is not shared.
+- insert:
+    - id: agent-studio
+      name: dsh-agent-studio
+      config:
+        port: 4317
+        dataDir: .studio

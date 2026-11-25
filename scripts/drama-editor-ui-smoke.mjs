@@ -1,0 +1,76 @@
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {startServer} from '../dist/src/server.js';
+import {startEditorModelFixture} from '../dist/tests/fixtures/editor-model.js';
+const {chromium}=await import(process.env.STUDIO_PLAYWRIGHT_MODULE || 'playwright');
+
+const root=await mkdtemp(join(tmpdir(),'drama-editor-browser-'));
+let app,model,browser;
+try {
+  model=await startEditorModelFixture(root);
+  app=await startServer({drama:true,dshHome:model.home,port:0,dataDir:join(root,'data'),scheduler:{pollIntervalMs:15}});
+  const {csrfToken}=await fetch(app.url+'/api/bootstrap').then(r=>r.json());
+  const read=async path=>fetch(app.url+'/api/drama'+path).then(r=>r.json());
+  const post=async(path,data)=>{
+    const r=await fetch(app.url+'/api/drama'+path,{method:'POST',headers:{'content-type':'application/json','x-studio-csrf':csrfToken},body:JSON.stringify(data)});
+    const result=await r.json();assert.ok(r.ok,JSON.stringify(result));return result;
+  };
+  const selection={provider:'fixture',model:'fixture'};
+  await post('/agents',{name:'总编',role:'orchestrator',selection});
+  const worker=await post('/agents',{name:'编辑',role:'worker',selection});
+  const project=await post('/projects',{name:'对话管理'});
+  const template=await post('/templates',{name:'创作流程',nodes:[{id:'outline',title:'分集大纲',x:10,y:10,agentId:worker.id,inputRule:'至少 1 个文件'}],edges:[]});
+  browser=await chromium.launch({headless:true,...(process.env.STUDIO_CHROME_BIN?{executablePath:process.env.STUDIO_CHROME_BIN}:{})});
+  const page=await browser.newPage();
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  page.on('dialog',d=>d.accept());
+  await page.goto(app.url+'/drama?project='+project.id);
+  const dialog=page.getByRole('dialog');
+  const open=()=>page.getByRole('button',{name:'总编对话',exact:true}).click();
+  const send=async(text,control)=>{
+    const marker='回执 '+text;
+    model.respond(control,marker);
+    await dialog.getByLabel('给总编的说明').fill(text);
+    await dialog.getByRole('button',{name:'提交',exact:true}).click();
+    await dialog.getByText(marker,{exact:true}).waitFor({timeout:20000});
+  };
+  await open();
+  await send('查看我已有的模板',{operation:'inspect'});
+  await send('用创作流程生成草案',{operation:'propose',templateId:template.id,templateVersion:1,graphVersion:1});
+  assert.equal((await read('/projects/'+project.id+'/graph')).nodes.length,0);
+  await dialog.getByRole('button',{name:'打开草案'}).click();
+  await page.getByRole('button',{name:'分集大纲',exact:true}).click();
+  await page.getByRole('button',{name:'节点设置'}).click();
+  await dialog.getByLabel('节点名称').fill('审稿后的分集大纲');
+  await dialog.getByRole('button',{name:'保存到草案'}).click();
+  await page.getByRole('button',{name:'保存总编草案'}).click();
+  await page.getByText('画布已保存。').waitFor();
+  const graph=await read('/projects/'+project.id+'/graph');
+  assert.equal(graph.nodes[0].title,'审稿后的分集大纲');
+  await open();
+  await send('启动已保存的大纲',{operation:'start',graphVersion:graph.version,nodeIds:['outline']});
+  const [run]=await read('/projects/'+project.id+'/runs');
+  assert.equal(run.nodes[0].status,'waiting');
+  await send('查一下本轮的阻塞原因',{operation:'inspect',runId:run.id});
+  await send('停止这次运行',{operation:'stop',runId:run.id});
+  await dialog.getByRole('button',{name:'查看运行'}).last().click();
+  await dialog.getByText('已停止',{exact:true}).waitFor();
+  await dialog.getByRole('button',{name:'返回对话'}).click();
+  const suggestion={name:'史料主编',role:'manager',systemPrompt:'查证时代背景。'};
+  await send('配置一个史料审核角色',{operation:'suggest_agent',suggestion});
+  assert.equal((await read('/agents')).length,2);
+  await dialog.getByRole('button',{name:'配置此 Agent'}).click();
+  assert.equal(await dialog.getByLabel('名称',{exact:true}).inputValue(),suggestion.name);
+  await dialog.locator('select[name="model"]').selectOption(JSON.stringify(['fixture','fixture']));
+  await dialog.getByLabel('编辑 · Worker').check();
+  await dialog.getByRole('button',{name:'保存',exact:true}).click();
+  await dialog.getByText('工作流操作回执',{exact:true}).waitFor();
+  const agent=(await read('/agents')).find(a=>a.name===suggestion.name);
+  assert.deepEqual(agent.delegateIds,[worker.id]);
+  assert.deepEqual(errors,[]);
+  console.log('Chrome verified editor messages, receipts, human edits to graph proposals, start/status/stop, Agent suggestions and explicit model/delegate selection on an isolated fixture.');
+} finally {
+  await browser?.close();await app?.close();await model?.close();await rm(root,{recursive:true,force:true});
+}

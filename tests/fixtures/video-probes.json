@@ -1,0 +1,40 @@
+{
+  "incomplete": {
+    "videoTracks": 1,
+    "audioTracks": 2,
+    "videoSeconds": 12,
+    "audioSeconds": 8,
+    "decodedFrames": 288,
+    "decodedVideoEnd": 12,
+    "decodedAudioEnd": 8,
+    "videoComplete": true,
+    "audioComplete": true,
+    "rms": [
+      0.21,
+      0.16,
+      0.24,
+      0.18,
+      0.22
+    ],
+    "peak": 0.73
+  },
+  "complete": {
+    "videoTracks": 1,
+    "audioTracks": 1,
+    "videoSeconds": 12,
+    "audioSeconds": 12,
+    "decodedFrames": 288,
+    "decodedVideoEnd": 12,
+    "decodedAudioEnd": 12,
+    "videoComplete": true,
+    "audioComplete": true,
+    "rms": [
+      0.21,
+      0.16,
+      0.24,
+      0.18,
+      0.22
+    ],
+    "peak": 0.73
+  }
+}
