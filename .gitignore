@@ -38,3 +38,8 @@ id_ed25519
 .git-credentials
 credentials.yaml
 credentials.yml
+
+# Machine-specific settings and unpublished material
+.local/
+compose.override.yaml
+compose.override.yml

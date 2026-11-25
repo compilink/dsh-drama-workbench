@@ -5,6 +5,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { renderVideoReviewPage } from './video-editorial-settings.js';
 import { VIDEO_ROLE_CONTRACTS, VIDEO_TOOL_CONTRACTS } from './video-role-contracts.js';
 import { createStudio } from './runtime.js';
 import { DramaStore, DramaStoreError } from './drama-store.js';
@@ -295,7 +296,8 @@ export async function startServer(options: StudioOptions & {port?: number; conta
       if ((method === 'GET' || method === 'HEAD') && asset) {
         const content = await readFile(join(publicDir, asset.file));
         res.writeHead(200, {'Content-Type': asset.mime, 'Cache-Control': 'no-cache'});
-        return res.end(method === 'HEAD' ? undefined : content);
+        if (method === 'HEAD') return res.end();
+        return res.end(asset.file === 'video.html' ? renderVideoReviewPage(content.toString('utf8')) : content);
       }
       throw new HttpError(404, '未找到此资源');
     })().catch((error: unknown) => {

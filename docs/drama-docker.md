@@ -26,6 +26,10 @@ docker compose ps
 
 公开网络只向获得授权的 Worker 开放。维基百科为直接搜索，其他勾选的引擎通过内置 SearXNG 或工作台配置的搜索地址查询。每个来源的可用性取决于网络和上游服务。
 
+## 本机配置
+
+Compose 会读取项目根目录的 `.env`。可在其中设置项目名 `COMPOSE_PROJECT_NAME`、数据目录、模型配置目录、用户 ID、镜像名和搜索镜像拉取策略 `DRAMA_SEARCH_PULL_POLICY`。已有部署应沿用原项目名和数据目录。私有编审配置使用根目录 `compose.override.yaml` 将 `.local/video-editorial.json` 单文件只读挂载至工作台的 `/app/.local/video-editorial.json`。这两份 Compose 配置和 `.local/` 由 Git 排除。运行本地 Ollama 验证时，环境变量 `STUDIO_DRAMA_LIVE_MODEL` 优先，亦可将模型名写入 `.local/ollama-smoke-model`。
+
 ## 备份与验证
 
 在任务到达可暂停的位置后停止本工作台，完整备份 `DRAMA_DATA_DIR`，再启动服务。恢复时把备份复制到新的空目录，将 `DRAMA_DATA_DIR` 指向该目录，再启动独立实例。一个数据目录只能有一个工作台进程持有写入锁。

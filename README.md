@@ -36,3 +36,5 @@ npm run check
 ```
 
 该命令校验 DSH 依赖、编译 TypeScript、运行 Node 测试。普通测试使用临时数据和模拟模型。依赖 Docker、浏览器或真实提供方的验证需要另行准备对应环境。组件分工和持久化数据见[架构说明](docs/architecture.md)。
+
+开发时请先[启用提交和推送前检查](docs/commit-checks.md)。

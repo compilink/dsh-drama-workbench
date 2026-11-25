@@ -1,9 +1,13 @@
-import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {startServer} from '../dist/src/server.js';
-const origin='http://127.0.0.1:11434', model=process.env.STUDIO_DRAMA_LIVE_MODEL;
+const origin='http://127.0.0.1:11434';
+const model=process.env.STUDIO_DRAMA_LIVE_MODEL ?? await readFile(new URL('../.local/ollama-smoke-model',import.meta.url),'utf8').then(text=>text.trim()).catch(error=>{
+  if(error.code==='ENOENT') return '';
+  throw error;
+});
 if (!model || !/^[a-zA-Z0-9_.:-]+$/.test(model)) throw new Error('Set STUDIO_DRAMA_LIVE_MODEL to the name of a locally installed Ollama model');
 delete process.env.STUDIO_ENDPOINT_OVERRIDES;
 const [running,catalog]=await Promise.all(['ps','tags'].map(route=>fetch(origin+'/api/'+route,{signal:AbortSignal.timeout(4000)}).then(async response=>{

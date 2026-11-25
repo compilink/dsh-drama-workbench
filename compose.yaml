@@ -49,7 +49,7 @@ services:
 
   public-search:
     image: ${DRAMA_SEARCH_IMAGE:-searxng/searxng:latest}
-    pull_policy: missing
+    pull_policy: ${DRAMA_SEARCH_PULL_POLICY:-missing}
     user: "977:977"
     init: true
     restart: unless-stopped
