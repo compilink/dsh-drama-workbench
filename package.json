@@ -1,7 +1,7 @@
 {
   "name": "dsh-agent-studio",
   "version": "0.3.0-prototype.1",
-  "description": "External DSH studio with private hierarchical memory and isolated local Worker execution",
+  "description": "基于 DeepSeek Harness 的剧本创作工作台，从选题和分集大纲，到多 Agent 写作、人工审稿与 Word、Markdown 导出。",
   "type": "module",
   "license": "UNLICENSED",
   "engines": {

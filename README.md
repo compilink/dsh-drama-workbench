@@ -1,6 +1,8 @@
-# DSH 剧本工作台
+# DSH Drama Workbench · 剧本工作台
 
-在浏览器中管理作品、资料和分集，在同一张画布上组织调研、设定、写作、审稿和导出。每个作品拥有独立的工作流和总编会话。Agent、Skill 和版本化模板可跨作品复用。
+基于 DeepSeek Harness 的剧本创作工作台，从选题和分集大纲，到多 Agent 写作、人工审稿与 Word、Markdown 导出。
+
+编剧可以直接在浏览器里调整节点指令、提供参考稿、批注具体台词，审核后将批准稿交给下游。每个作品拥有独立的工作流和总编会话。Agent、Skill 和版本化模板可跨作品复用。
 
 ## 启动本地演示
 
@@ -12,7 +14,7 @@ npm run bootstrap
 npm run workbench:demo -- --data-dir .drama-demo --port 4318
 ```
 
-打开 [本机工作台](http://127.0.0.1:4318)。演示模式使用确定性的模拟角色，可以体验建图、执行、审稿和导出。真实模型使用另一个数据目录启动。
+打开[本机剧本工作台](http://127.0.0.1:4318/drama)。演示模式使用确定性的模拟角色，可以体验建图、执行、审稿和导出。真实模型使用另一个数据目录启动。
 
 ```sh
 npm run workbench -- --dsh-home /absolute/path/to/dsh-config --data-dir .drama --port 4318
@@ -25,9 +27,15 @@ npm run workbench -- --dsh-home /absolute/path/to/dsh-config --data-dir .drama -
 1. 在 Agent 页选择总编（Orchestrator）、主编（Manager）和执行者（Worker）。总编与主编可以编排分工和验收，Worker 执行创作或调研。调研授权和搜索来源在工作台配置。
 2. 在作品库创建作品，选择模板或用空白画布起步。在画布空白处右键添加节点，拖拽连线，设置指令、输入和输出检查，以及人工审核条件。保存草稿后再执行。
 3. 从资料页或节点面板提供内容。节点准备好后调度器读取上游批准版本。可以暂停、恢复、重跑或追加独立任务。在总编对话中也可以查看进度、提出画布修改和管理运行。
-4. 在成果页审阅或退回确切版本。选中原文可以提交批注、派发修订并对照采纳。节点成果和分集可导出为 Word 或 Markdown。归档作品后，可单独选择删除。
+4. 在节点成果中核对本次执行的版本，批准或退回修改。选中原文可以提交批注、派发修订并对照采纳。节点成果和分集可导出为 Word 或 Markdown。归档作品后，可单独选择删除。
 
 画布、模板和审核操作见[工作台操作](docs/drama-workbench-controls.md)。任务委派、重跑和上下文见[角色执行](docs/drama-role-execution.md)。总编可以在对话中完成的操作见[总编对话管理](docs/drama-editor-control.md)。
+
+## 本地数据与通用平台
+
+作品数据、上传原件和会话记录保存在工作台自己的数据目录。Docker 部署可用 `DRAMA_DATA_DIR` 指向宿主目录。更换镜像后继续挂载同一目录即可沿用现有作品，项目名和锁卷也应沿用原部署配置。[Docker 部署与备份](docs/drama-docker.md)
+
+通用的任务调度、角色委派、工作流和模型接入也可在独立的 [DSH Agent Studio](https://github.com/compilink/dsh-agent-studio) 中使用。这里提供剧本专用的作品库、分集阅读、原文批注、审核稿交接及文档导出。两个项目可分别安装运行。
 
 ## 开发与验证
 
